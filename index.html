@@ -128,6 +128,7 @@ html, body {
 .stat-row .dot.joining  { background: var(--joining-bg); border-color: #93C5FD; }
 .stat-row .dot.female   { background: var(--dot-female); border-color: #D4A5BE; }
 .stat-row .dot.male     { background: var(--dot-male); border-color: #93A9C3; }
+.stat-org-group { font-size: 10px; font-weight: 600; color: var(--ink-muted); padding: 6px 8px 2px; letter-spacing: 0.03em; }
 .stat-total {
   padding: 10px 12px; background: var(--canvas-bg); border-radius: 8px; margin-bottom: 4px;
 }
@@ -499,6 +500,9 @@ body.edit-mode .draft-add-row { display: flex; }
 
     <h4 class="stat-header" data-target="stats-gender">성별 <span class="toggle-icon">▾</span></h4>
     <div id="stats-gender" class="stat-section"></div>
+
+    <h4 class="stat-header" data-target="stats-org">조직별 <span class="toggle-icon">▾</span></h4>
+    <div id="stats-org" class="stat-section"></div>
   </aside>
 
   <div class="canvas" id="canvas">
@@ -858,6 +862,16 @@ function computeStats(root) {
   return stats;
 }
 
+function findNode(root, name) {
+  if (!root) return null;
+  if (root.name === name) return root;
+  for (const c of (root.children || [])) {
+    const found = findNode(c, name);
+    if (found) return found;
+  }
+  return null;
+}
+
 function statRow(badgeClass, badgeText, label, value, badgeStyle) {
   const row = document.createElement('div'); row.className = 'stat-row';
   if (badgeStyle === 'dot') {
@@ -925,6 +939,28 @@ function initWithData(root, todayStr) {
   if (stats.gender['미지정'] > 0) {
     genderContainer.appendChild(statRow('regular','','미지정',stats.gender['미지정'],'dot'));
   }
+
+  const ORG_GROUPS = [
+    ['사업부', ['한국사업본부','일본사업본부','글로벌마케팅 1본부','글로벌마케팅 2본부','글로벌마케팅 3본부','해외영업본부','프롬랩스 사업본부']],
+    ['브랜드HQ', ['프로덕트본부','디자인 1팀','디자인 2팀']],
+    ['그로스브랜드', ['프로젝트21팀']],
+    ['운영HQ', ['SCM본부','피플실','재무실','법무팀','커뮤니케이션팀']],
+    [null, ['COO Staff','CEO Staff']],
+  ];
+  const orgContainer = document.getElementById('stats-org');
+  orgContainer.innerHTML = '';
+  ORG_GROUPS.forEach(([groupLabel, orgs]) => {
+    if (groupLabel) {
+      const sep = document.createElement('div');
+      sep.className = 'stat-org-group';
+      sep.textContent = groupLabel;
+      orgContainer.appendChild(sep);
+    }
+    orgs.forEach(orgName => {
+      const node = findNode(DATA, orgName);
+      if (node) orgContainer.appendChild(statRow('regular','', orgName, node.total, 'dot'));
+    });
+  });
 
   renderTree(DATA);
 }
