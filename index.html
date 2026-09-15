@@ -930,20 +930,40 @@ function initWithData(root, todayStr) {
 }
 
 // 초기화: static(baked) 또는 dynamic(fetch)
+const _LS_KEY = 'org_cache_v1';
+
 if (_BAKED !== null) {
   initWithData(_BAKED, null);
   document.getElementById('loading-overlay').style.display = 'none';
 } else {
+  // localStorage 캐시가 있으면 즉시 표시
+  let _hasCached = false;
+  try {
+    const _raw = localStorage.getItem(_LS_KEY);
+    if (_raw) {
+      const _cached = JSON.parse(_raw);
+      initWithData(_cached.tree, _cached.today);
+      document.getElementById('loading-overlay').style.display = 'none';
+      _hasCached = true;
+    }
+  } catch(e) {}
+
+  // 항상 백그라운드에서 최신 데이터 fetch
   fetch(APPS_SCRIPT_URL)
     .then(r => r.json())
     .then(res => {
       if (!res.success) throw new Error(res.error || '알 수 없는 오류');
-      initWithData(res.data.tree, res.data.today);
-      document.getElementById('loading-overlay').style.display = 'none';
+      try { localStorage.setItem(_LS_KEY, JSON.stringify(res.data)); } catch(e) {}
+      if (!_hasCached) {
+        initWithData(res.data.tree, res.data.today);
+        document.getElementById('loading-overlay').style.display = 'none';
+      }
     })
     .catch(err => {
-      const ov = document.getElementById('loading-overlay');
-      ov.innerHTML = '<div class="loading-error">데이터 로드 실패: ' + err.message + '<br>페이지를 새로고침하거나 관리자에게 문의하세요.</div>';
+      if (!_hasCached) {
+        const ov = document.getElementById('loading-overlay');
+        ov.innerHTML = '<div class="loading-error">데이터 로드 실패: ' + err.message + '<br>페이지를 새로고침하거나 관리자에게 문의하세요.</div>';
+      }
     });
 }
 
