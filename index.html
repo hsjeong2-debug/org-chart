@@ -522,7 +522,9 @@ const CARD_W_ROOT = 240;
 // 트리상 depth가 낮지만 시각적으로 강제할 최소 depth 지정
 const FORCE_DEPTH = {
   '디자인 1팀':3,'디자인 2팀':3,'프로젝트21팀':3,'법무팀':3,'커뮤니케이션팀':3,
+  'COO Staff':3,'CEO Staff':1,
 };
+const HIDDEN_ORGS = new Set(['고문']);
 // 자녀가 모두 리프여도 임베드하지 않을 조직
 const NO_AUTO_EMBED = new Set(['재무실']);
 const INTRA_GAP   = 10;
@@ -730,7 +732,15 @@ function renderNode(node, isRoot) {
   return el;
 }
 
+function pruneHidden(node) {
+  node.children = (node.children || [])
+    .filter(c => !HIDDEN_ORGS.has(c.name))
+    .map(pruneHidden);
+  return node;
+}
+
 function renderTree(root) {
+  pruneHidden(root);
   calcSubtreeWidth(root, true);
   assignX(root, OUTER_PAD, true);
 
@@ -853,6 +863,7 @@ function computeStats(root) {
     else stats.gender['미지정']++;
   }
   function walk(n) {
+    if (HIDDEN_ORGS.has(n.name)) return;
     stats.orgs++;
     (n.leaders || []).forEach(p => tally(p, true));
     (n.members || []).forEach(p => tally(p, false));
