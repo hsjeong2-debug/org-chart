@@ -522,7 +522,7 @@ const CARD_W_ROOT = 240;
 // 트리상 depth가 낮지만 시각적으로 강제할 최소 depth 지정
 const FORCE_DEPTH = {
   '디자인 1팀':3,'디자인 2팀':3,'프로젝트21팀':3,'법무팀':3,'커뮤니케이션팀':3,
-  'COO Staff':3,'CEO Staff':2,
+  'COO Staff':3,
 };
 const HIDDEN_ORGS = new Set(['고문']);
 // 자녀가 모두 리프여도 임베드하지 않을 조직
@@ -741,6 +741,20 @@ function pruneHidden(node) {
 
 function renderTree(root) {
   pruneHidden(root);
+
+  // CEO Staff: render directly below root card (not in normal tree flow)
+  let _ceoStaff = null, _ceoStaffGap = 0;
+  if (root.children) {
+    const _si = root.children.findIndex(c => (c.short_name || c.name) === 'CEO Staff');
+    if (_si !== -1) {
+      _ceoStaff = root.children[_si];
+      _ceoStaff._embedded = true;
+      _ceoStaff._selfW = CARD_W;
+      _ceoStaff._subtreeW = 0;
+      _ceoStaffGap = estimateCardHeight(_ceoStaff) + 12;
+    }
+  }
+
   calcSubtreeWidth(root, true);
   assignX(root, OUTER_PAD, true);
 
@@ -749,7 +763,7 @@ function renderTree(root) {
   const depthTops = {0: 0};
   Object.keys(depthMax).map(Number).sort((a,b)=>a-b).forEach(d => {
     if (d === 0) { depthTops[0] = 0; }
-    else { depthTops[d] = depthTops[d-1] + depthMax[d-1] + vGap(d-1); }
+    else { depthTops[d] = depthTops[d-1] + depthMax[d-1] + vGap(d-1) + (d === 1 ? _ceoStaffGap : 0); }
   });
   finalizeY(root, 0, depthTops);
 
@@ -765,6 +779,13 @@ function renderTree(root) {
   }
   walk(root, true);
 
+  // Render CEO Staff card (walk skipped it)
+  if (_ceoStaff) {
+    const _se = renderNode(_ceoStaff, false);
+    container.appendChild(_se);
+    _ceoStaff._el = _se;
+  }
+
   const LAYOUT_H_CAP = 300;
   const realDepthMax = {};
   function measureDepth(node, depth) {
@@ -777,10 +798,15 @@ function renderTree(root) {
   }
   measureDepth(root, 0);
 
+  let _ceoStaffRealGap = 0;
+  if (_ceoStaff && _ceoStaff._el) {
+    _ceoStaffRealGap = Math.min(_ceoStaff._el.getBoundingClientRect().height, LAYOUT_H_CAP) + 12;
+  }
+
   const realDepthTops = {0: 0};
   Object.keys(realDepthMax).map(Number).sort((a,b)=>a-b).forEach(d => {
     if (d === 0) { realDepthTops[0] = 0; }
-    else { realDepthTops[d] = realDepthTops[d-1] + realDepthMax[d-1] + vGap(d-1); }
+    else { realDepthTops[d] = realDepthTops[d-1] + realDepthMax[d-1] + vGap(d-1) + (d === 1 ? _ceoStaffRealGap : 0); }
   });
 
   function repositionY(node, depth) {
@@ -793,6 +819,15 @@ function renderTree(root) {
   }
   repositionY(root, 0);
 
+  // Position CEO Staff: centered below root card, in the gap before depth-1
+  if (_ceoStaff && _ceoStaff._el) {
+    const _rootH = root._el.getBoundingClientRect().height;
+    _ceoStaff.x = root.x + (root._selfW - CARD_W) / 2;
+    _ceoStaff.y = _rootH + 8;
+    _ceoStaff._el.style.left = _ceoStaff.x + 'px';
+    _ceoStaff._el.style.top  = _ceoStaff.y + 'px';
+  }
+
   let maxX = 0, maxY = 0;
   function measure(node, depth) {
     if (node._embedded) return;
@@ -803,6 +838,10 @@ function renderTree(root) {
     if (node.children && !node._embedChildren) node.children.forEach(c => measure(c, depth + 1));
   }
   measure(root, 0);
+  if (_ceoStaff && _ceoStaff._el) {
+    maxX = Math.max(maxX, _ceoStaff.x + CARD_W);
+    maxY = Math.max(maxY, _ceoStaff.y + _ceoStaff._el.getBoundingClientRect().height);
+  }
   container.style.width  = (maxX + OUTER_PAD) + 'px';
   container.style.height = (maxY + 40) + 'px';
 
@@ -841,6 +880,15 @@ function renderTree(root) {
     visibleKids.forEach(c => drawConnectors(c, depth + 1));
   }
   drawConnectors(root, 0);
+
+  // CEO Staff connector: short direct vertical from root card bottom-center
+  if (_ceoStaff && _ceoStaff._el) {
+    const _rootH2 = root._el.getBoundingClientRect().height;
+    const _cx = _ceoStaff.x + CARD_W / 2;
+    const _dp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    _dp.setAttribute('d', `M ${_cx} ${_rootH2} V ${_ceoStaff.y}`);
+    svg.appendChild(_dp);
+  }
 }
 
 function computeStats(root) {
