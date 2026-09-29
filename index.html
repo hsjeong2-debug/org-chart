@@ -911,7 +911,7 @@ function computeStats(root) {
     stats.total++;
     if (p.leave) stats.leave++; else stats.active++;
     if (isLeader) stats.position['L']++;
-    else stats.position[p.code] = (stats.position[p.code] || 0) + 1;
+    else { const _pk = p.code.replace('(현장실습)', ''); stats.position[_pk] = (stats.position[_pk] || 0) + 1; }
     if (['정규직','계약직','파견직'].includes(p.contract)) stats.contract[p.contract]++;
     else stats.contract['기타']++;
     if (p.gender === '여성' || p.gender === '남성') stats.gender[p.gender]++;
