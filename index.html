@@ -219,9 +219,11 @@ html, body {
   background: var(--badge-blue); line-height: 15px; white-space: nowrap;
 }
 /* 코드 뱃지: 직책 기준 색상 */
-.person-row.member .code[data-code="(전)인턴"] { background: var(--badge-pink); }
+.person-row.member .code[data-code="(전)인턴"],
+.person-row.member .code[data-code="(전)인턴(현장실습)"] { background: var(--badge-pink); }
 .person-row.member .code[data-code="어시"] { background: var(--badge-yellow); }
 .person-row.member .code[data-code="(단)인턴"],
+.person-row.member .code[data-code="(단)인턴(현장실습)"],
 .person-row.member .code[data-code="PT"] { background: #EDE9FE; color: var(--ink); }
 .person-row.member .code .code-sub { font-size: 8px; font-weight: 400; opacity: 0.6; }
 /* S/M/PA + 계약/파견 suffix는 data-code가 여전히 S/M/PA이므로 기본 파랑 유지 */
